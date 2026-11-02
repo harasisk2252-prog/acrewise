@@ -1,0 +1,23 @@
+# Free hackathon demo, explicitly chosen by the user. SQLite is ephemeral.
+services:
+  - type: web
+    name: acrewise-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: DATABASE_URL
+        value: sqlite:///./acrewise.db
+      - key: STORAGE_MODE
+        value: ephemeral
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false

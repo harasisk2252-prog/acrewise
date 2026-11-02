@@ -8,3 +8,9 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.log
+.netlify/
+.vercel/
+.mypy_cache/
+# Unrelated work in this shared workspace must never enter AcreWise deployments.
+build-intentiq/
+deliverables/

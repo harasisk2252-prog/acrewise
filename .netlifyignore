@@ -1,0 +1,8 @@
+backend/**
+build-intentiq/**
+deliverables/**
+.codex/**
+.git/**
+.env
+**/.env
+**/*.db

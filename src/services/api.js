@@ -7,6 +7,7 @@ export async function apiRequest(path, options = {}) {
   const { headers, ...rest } = options;
   const response = await fetch(`${BASE}${path}`, { ...rest, signal: options.signal || AbortSignal.timeout(35000), headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...headers } });
   if (response.status === 204) return null;
+  if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('The API returned a web page instead of JSON. Configure VITE_API_BASE_URL with your deployed FastAPI URL.');
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const d = body.detail;
