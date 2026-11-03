@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     gemini_api_key: str = ''
     gemini_model: str = ''
     storage_mode: str = 'local'
+    # Optional Twilio credentials. Never expose these values to the browser.
+    twilio_account_sid: str = ''
+    twilio_auth_token: str = ''
+    twilio_from_number: str = ''
+    weather_provider: str = 'open-meteo'
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
 settings = Settings()

@@ -1,52 +1,380 @@
-import React, {useEffect,useState,useRef} from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { NavLink, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Sprout, LayoutDashboard, SlidersHorizontal, ChartNoAxesCombined, AudioLines, Tractor, Bookmark, ArrowUpRight, ArrowRight, ChevronRight, MapPin, CalendarDays, Menu, X, Leaf, Check, Save, RotateCcw, Trash2, Sparkles, Info, Droplets, Globe, Wheat, Download } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import {apiRequest,post,ensureSession,readLocal,writeLocal,resetSession} from './services/api';
-import {dictionary,languages,cropName} from './i18n';
-import {Button,Title,ErrorBox,Field,Assumptions,Metrics,Mix,Resources,AllocationTable,FarmFields,money,number} from './components/Shared';
-import Saathi from './components/Saathi';
+import { 
+  Sprout, LayoutDashboard, Tractor, Sparkles, TrendingUp, 
+  MapPin, SlidersHorizontal, Calendar, CloudSun, AudioLines, 
+  FileText, CreditCard, MessageSquare, Settings, Users, 
+  ShieldCheck, Globe, Menu, X, ArrowUpRight, Check, Info 
+} from 'lucide-react';
+
+import { apiRequest, post, ensureSession, readLocal, writeLocal, resetSession } from './services/api';
+import { dictionary, languages } from './i18n';
+import { Button, ErrorBox } from './components/Shared';
+
+// Import Modern Pages
+import Dashboard from './pages/Dashboard';
+import MyFarm from './pages/MyFarm';
+import CropAdvisor from './pages/CropAdvisor';
+import MarketIntelligence from './pages/MarketIntelligence';
+import RegionalInsights from './pages/RegionalInsights';
+import CropPlanning from './pages/CropPlanning';
+import HarvestPlanner from './pages/HarvestPlanner';
+import WeatherAlerts from './pages/WeatherAlerts';
+import AskAcreWise from './pages/AskAcreWise';
+import MyReports from './pages/MyReports';
+import Subscription from './pages/Subscription';
+import Feedback from './pages/Feedback';
+import SettingsProfile from './pages/SettingsProfile';
+import FPODashboard from './pages/FPODashboard';
+import AdminDashboard from './pages/AdminDashboard';
+
 import './premium.css';
+import './modern-theme.css';
+import './futuristic-theme.css';
 
-export const defaultFarm={name:'My farm',farmer_name:'',district:'Amritsar',state:'Punjab',acres:10,soil:'loamy',season:'rabi',budget:180000,water:12000};
-const initialRequest={farm:defaultFarm,objective:'balanced',max_share:.7};
-function Landscape(){return <svg className="landscape" viewBox="0 0 750 430" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="sky" x2="0" y2="1"><stop stopColor="#b5c3a4"/><stop offset="1" stopColor="#eef0d7"/></linearGradient><linearGradient id="hill" x2="1" y2="1"><stop stopColor="#77915a"/><stop offset="1" stopColor="#36583b"/></linearGradient><pattern id="rows" width="23" height="23" patternUnits="userSpaceOnUse" patternTransform="rotate(-28)"><path d="M0 0V23" stroke="#c3cd8b" strokeWidth="7"/></pattern><pattern id="goldRows" width="19" height="19" patternUnits="userSpaceOnUse" patternTransform="rotate(25)"><path d="M0 0V19" stroke="#daca83" strokeWidth="6"/></pattern></defs><rect width="750" height="430" fill="url(#sky)"/><circle cx="548" cy="94" r="52" fill="#efe4b6"/><path d="M0 221Q150 99 323 180T750 155V430H0" fill="#9caa79"/><path d="M0 265Q160 130 380 228T750 182V430H0" fill="#6c8252"/><path d="M-20 430V283Q200 170 402 260L525 430" fill="url(#hill)"/><path d="M-20 430V283Q200 170 402 260L525 430" fill="url(#rows)" opacity=".64"/><path d="M750 220Q570 222 402 260L525 430H750" fill="#b4ac69"/><path d="M750 220Q570 222 402 260L525 430H750" fill="url(#goldRows)" opacity=".8"/><path d="M750 218Q578 223 402 260L525 430" fill="none" stroke="#e5d9a6" strokeWidth="8"/><path d="M0 356Q180 280 442 318" fill="none" stroke="#e4d5a0" strokeWidth="5"/><g fill="#395c40"><ellipse cx="630" cy="210" rx="13" ry="23"/><ellipse cx="661" cy="205" rx="11" ry="19"/><ellipse cx="688" cy="201" rx="12" ry="22"/></g><path d="M587 198v-17h25v20" fill="#d8ccab"/><path d="M581 182l19-14 18 14" fill="#66573f"/></svg>}
+export const defaultFarm = {
+  name: 'My Farm',
+  farmer_name: '',
+  district: 'Amritsar',
+  state: 'Punjab',
+  acres: 10,
+  soil: 'loamy',
+  season: 'rabi',
+  budget: 180000,
+  water: 12000
+};
 
-export default function App(){
- const [lang,setLang]=useState(()=>{const x=readLocal('acrewise-language','en');return languages[x]?x:'en';}),t=dictionary[lang];
- const [farm,setFarm]=useState(defaultFarm),[request,setRequest]=useState(initialRequest),[result,setResult]=useState(null),[health,setHealth]=useState(null),[status,setStatus]=useState('checking'),[error,setError]=useState(''),[authError,setAuthError]=useState(false),[notice,setNotice]=useState(''),[menu,setMenu]=useState(false),[ready,setReady]=useState(false),[version,setVersion]=useState(0);
- const location=useLocation(),go=useNavigate(),noticeTimer=useRef();
- const toast=text=>{setNotice(text);clearTimeout(noticeTimer.current);noticeTimer.current=setTimeout(()=>setNotice(''),4000);};
- useEffect(()=>{writeLocal('acrewise-language',lang);document.documentElement.lang=lang;},[lang]);
- useEffect(()=>{setMenu(false);window.scrollTo(0,0);},[location.pathname]);
- useEffect(()=>{let live=true;setStatus('checking');setError('');setReady(false);(async()=>{try{const h=await apiRequest('/health');const fresh=await ensureSession();let f=await apiRequest('/api/farm');if(fresh){const old=readLocal('acrewise-farm',null);if(old&&Number(old.acres)>0){f={...defaultFarm,farmer_name:old.farmerName||'',name:old.name||'My farm',acres:Number(old.acres),district:old.district||'Amritsar',state:old.state||'Punjab',soil:['loamy','alluvial','sandy','clay'].includes(old.soil?.toLowerCase())?old.soil.toLowerCase():'loamy'};await apiRequest('/api/farm',{method:'PUT',body:JSON.stringify(f)});}}if(!live)return;setFarm(f);setHealth(h);setStatus('connected');setAuthError(false);const req={...initialRequest,farm:f};setRequest(req);setReady(true);try{const r=await post('/api/optimize',req);if(live)setResult(r);}catch(e){if(live){setResult(null);setError(e.message);}}}catch(e){if(live){setError(e.message);setStatus('disconnected');setAuthError(e.status===401);}}})();return()=>{live=false;};},[version]);
- const nav=[['/','overview',LayoutDashboard],['/farm','farm',Tractor],['/optimizer','optimizer',SlidersHorizontal],['/simulator','simulator',ChartNoAxesCombined],['/assistant','assistant',AudioLines],['/plans','plans',Bookmark],['/crops','crops',Wheat]];
- async function calculate(req){setRequest(req);setResult(null);const r=await post('/api/optimize',req);setResult(r);setError('');return r;}
- const shared={t,lang,request,result,farm,go,toast,calculate,ready};
- return <div className="aw-app"><a className="skip-link" href="#main">Skip to content</a>{menu&&<button className="aw-scrim" onClick={()=>setMenu(false)} aria-label="Close menu"/>}<aside className={`aw-sidebar ${menu?'open':''}`}><NavLink to="/" className="aw-brand"><span className="brand-symbol"><Sprout size={25}/></span><span>AcreWise<span className="brand-period">.</span><small>ROOTED IN POSSIBILITY</small></span></NavLink><button className="mobile-close-aw" aria-label="Close menu" onClick={()=>setMenu(false)}><X/></button><div className="sidebar-caption">{t.workspace}</div><nav aria-label={t.workspace}>{nav.map(([path,key,Icon],i)=><React.Fragment key={path}>{i===2&&<div className="sidebar-caption second">{t.intelligence}</div>}<NavLink end={path==='/'} to={path} className={({isActive})=>`aw-nav ${isActive?'active':''}`}><Icon size={19}/><span>{t[key]}</span>{key==='assistant'&&<span className="nav-ai">AI</span>}</NavLink></React.Fragment>)}</nav><div className="sidebar-grow"/><div className="sidebar-season"><div className="season-icon"><Sprout size={23}/></div><span>{t[farm.season]} 2026–27</span><small><MapPin size={12}/>{farm.district}, {farm.state}</small><NavLink to="/farm">{t.farm}<ArrowUpRight size={15}/></NavLink></div><a className="classic-link" href="/classic.html">{t.classic} <ArrowUpRight size={13}/></a><div className="sidebar-profile"><div className="aw-avatar">{farm.farmer_name?farm.farmer_name.slice(0,2).toUpperCase():'AW'}</div><div><strong>{farm.farmer_name||'AcreWise Farmer'}</strong><span>{farm.name}</span></div><NavLink to="/farm" aria-label={t.farm}><ChevronRight size={17}/></NavLink></div></aside><div className="aw-main"><header className="aw-topbar"><div className="top-left"><button className="mobile-open-aw" aria-label="Open menu" onClick={()=>setMenu(true)}><Menu/></button><span className="crumb">{t.workspace.toLowerCase()}<ChevronRight size={13}/><strong>{t[nav.find(n=>n[0]===location.pathname)?.[1]||'overview']}</strong></span></div><div className="top-right"><span className={`connection ${status}`}><i/>{t[status]}</span><label className="language-select"><Globe size={16}/><select aria-label="Language / भाषा / ਭਾਸ਼ਾ" value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(languages).map(([code,label])=><option key={code} value={code}>{label}</option>)}</select></label><NavLink to="/farm" className="aw-avatar small">{farm.farmer_name?farm.farmer_name.slice(0,2).toUpperCase():'AW'}</NavLink></div></header><main id="main" className="aw-content">{health?.storage_mode==='ephemeral'&&<div className="warning-box"><Info size={16}/>{t.storageNotice}</div>}<ErrorBox error={error}/>{status==='disconnected'&&<div className="reconnect"><Button secondary onClick={()=>setVersion(v=>v+1)}>{t.retry}</Button>{authError&&<Button secondary onClick={()=>{resetSession();setVersion(v=>v+1);}}>{t.newSession}</Button>}</div>}{!ready&&status==='checking'?<div className="aw-loading"><Sprout className="pulse" size={32}/>{t.loading}</div>:<Routes><Route path="/" element={<Overview {...shared}/>}/><Route path="/dashboard" element={<Navigate to="/" replace/>}/><Route path="/optimizer" element={<Optimizer {...shared}/>}/><Route path="/simulator" element={<Simulator {...shared}/>}/><Route path="/assistant" element={<Saathi {...shared} health={health}/>}/><Route path="/farm" element={<FarmPage {...shared} setFarm={setFarm}/>}/><Route path="/plans" element={<Plans {...shared} setRequest={setRequest} setResult={setResult}/>}/><Route path="/crops" element={<Crops {...shared}/>}/><Route path="/recommendations" element={<Navigate to="/crops" replace/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes>}</main><footer className="aw-footer"><span><Sprout size={15}/>{t.foot}</span><span><i/>{t.demo} · AcreWise 2.0</span></footer></div>{notice&&<div className="aw-toast" role="status"><Check size={18}/>{notice}</div>}</div>
+const initialRequest = { farm: defaultFarm, objective: 'balanced', max_share: 0.7 };
+
+export default function App() {
+  const [lang, setLang] = useState(() => {
+    const x = readLocal('acrewise-language', 'en');
+    return languages[x] ? x : 'en';
+  });
+  const t = dictionary[lang] || dictionary.en;
+
+  const [farm, setFarm] = useState(defaultFarm);
+  const [request, setRequest] = useState(initialRequest);
+  const [result, setResult] = useState(null);
+  const [health, setHealth] = useState(null);
+  const [status, setStatus] = useState('checking');
+  const [error, setError] = useState('');
+  const [authError, setAuthError] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [menu, setMenu] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [version, setVersion] = useState(0);
+
+  const location = useLocation();
+  const go = useNavigate();
+  const noticeTimer = useRef();
+
+  const toast = text => {
+    setNotice(text);
+    clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(''), 4000);
+  };
+
+  useEffect(() => {
+    writeLocal('acrewise-language', lang);
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  useEffect(() => {
+    setMenu(false);
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    let live = true;
+    setStatus('checking');
+    setError('');
+    setReady(false);
+
+    (async () => {
+      try {
+        const h = await apiRequest('/health').catch(() => ({ status: 'local', storage_mode: 'local' }));
+        const fresh = await ensureSession().catch(() => false);
+        let f = await apiRequest('/api/farm').catch(() => defaultFarm);
+
+        if (fresh) {
+          const old = readLocal('acrewise-farm', null);
+          if (old && Number(old.acres) > 0) {
+            f = {
+              ...defaultFarm,
+              farmer_name: old.farmerName || '',
+              name: old.name || 'My Farm',
+              acres: Number(old.acres),
+              district: old.district || 'Amritsar',
+              state: old.state || 'Punjab',
+              soil: ['loamy', 'alluvial', 'sandy', 'clay'].includes(old.soil?.toLowerCase()) ? old.soil.toLowerCase() : 'loamy'
+            };
+            await apiRequest('/api/farm', { method: 'PUT', body: JSON.stringify(f) }).catch(() => {});
+          }
+        }
+
+        if (!live) return;
+        setFarm(f);
+        setHealth(h);
+        setStatus('connected');
+        setAuthError(false);
+
+        const req = { ...initialRequest, farm: f };
+        setRequest(req);
+        setReady(true);
+
+        try {
+          const r = await post('/api/optimize', req);
+          if (live) setResult(r);
+        } catch (e) {
+          if (live) {
+            setResult(null);
+            setError(e.message);
+          }
+        }
+      } catch (e) {
+        if (live) {
+          setError(e.message);
+          setStatus('disconnected');
+          setAuthError(e.status === 401);
+        }
+      }
+    })();
+
+    return () => { live = false; };
+  }, [version]);
+
+  async function calculate(req) {
+    setRequest(req);
+    setResult(null);
+    const r = await post('/api/optimize', req);
+    setResult(r);
+    setError('');
+    return r;
+  }
+
+  const shared = { t, lang, request, setRequest, result, setResult, farm, setFarm, go, toast, calculate, ready, health };
+
+  // Master 13 Navigation Items Categorized
+  const navStructure = [
+    {
+      group: t.workspace,
+      items: [
+        { path: '/', key: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
+        { path: '/farm', key: 'farm', label: t.farm, icon: Tractor },
+      ]
+    },
+    {
+      group: t.intelligence,
+      items: [
+        { path: '/advisor', key: 'advisor', label: t.advisor, icon: Sparkles, badge: 'AI' },
+        { path: '/market', key: 'market', label: t.market, icon: TrendingUp },
+        { path: '/regional', key: 'regional', label: t.regional, icon: MapPin, badge: 'Live' },
+        { path: '/planning', key: 'planning', label: t.planning, icon: SlidersHorizontal },
+        { path: '/harvest', key: 'harvest', label: t.harvest, icon: Calendar },
+        { path: '/weather', key: 'weather', label: t.weather, icon: CloudSun },
+      ]
+    },
+    {
+      group: t.tools,
+      items: [
+        { path: '/ask', key: 'ask', label: t.ask, icon: AudioLines, badge: 'Voice' },
+        { path: '/reports', key: 'reports', label: t.reports, icon: FileText },
+        { path: '/subscription', key: 'subscription', label: t.subscription, icon: CreditCard },
+        { path: '/feedback', key: 'feedback', label: t.feedback, icon: MessageSquare },
+        { path: '/settings', key: 'settings', label: t.settings, icon: Settings },
+      ]
+    },
+    {
+      group: t.enterprise,
+      items: [
+        { path: '/fpo', key: 'fpo', label: t.fpo, icon: Users },
+        { path: '/admin', key: 'admin', label: t.admin, icon: ShieldCheck },
+      ]
+    }
+  ];
+
+  return (
+    <div className="aw-app">
+      <a className="skip-link" href="#main">Skip to content</a>
+      {menu && <button className="aw-scrim" onClick={() => setMenu(false)} aria-label="Close menu" />}
+
+      {/* Modern Sidebar */}
+      <aside className={`aw-sidebar ${menu ? 'open' : ''}`}>
+        <NavLink to="/" className="aw-brand">
+          <span className="brand-symbol"><Sprout size={25} /></span>
+          <span>AcreWise<span className="brand-period">.</span><small>ROOTED IN POSSIBILITY</small></span>
+        </NavLink>
+        <button className="mobile-close-aw" aria-label="Close menu" onClick={() => setMenu(false)}><X /></button>
+
+        <nav aria-label="Main Navigation">
+          {navStructure.map((group, gIdx) => (
+            <div key={gIdx}>
+              <div className="nav-section-title">{group.group}</div>
+              {group.items.map(item => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.path}
+                    end={item.path === '/'}
+                    to={item.path}
+                    className={({ isActive }) => `aw-nav ${isActive ? 'active' : ''}`}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                    {item.badge && <span className="nav-ai">{item.badge}</span>}
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-grow" />
+
+        {/* Season & Farm Summary Card */}
+        <div className="sidebar-season" style={{ margin: '14px 0' }}>
+          <div className="season-icon"><Sprout size={23} /></div>
+          <span>{t[farm.season || 'rabi']} 2026–27</span>
+          <small><MapPin size={12} />{farm.district || 'Amritsar'}, {farm.state || 'Punjab'}</small>
+          <NavLink to="/farm">{t.farm} <ArrowUpRight size={15} /></NavLink>
+        </div>
+
+        <a className="classic-link" href="/classic.html">
+          {t.classic} <ArrowUpRight size={13} />
+        </a>
+
+        {/* Profile Footer */}
+        <div className="sidebar-profile">
+          <div className="aw-avatar">
+            {farm.farmer_name ? farm.farmer_name.slice(0, 2).toUpperCase() : 'AW'}
+          </div>
+          <div>
+            <strong>{farm.farmer_name || 'AcreWise Farmer'}</strong>
+            <span>{farm.name || 'My Farm'}</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="aw-main">
+        {/* Top Header */}
+        <header className="aw-topbar">
+          <div className="top-left">
+            <button className="mobile-open-aw" aria-label="Open menu" onClick={() => setMenu(true)}>
+              <Menu />
+            </button>
+            <span className="crumb">
+              AcreWise Platform <span style={{ margin: '0 6px', color: '#cbd5c5' }}>/</span> 
+              <strong>{location.pathname.replace('/', '').toUpperCase() || 'DASHBOARD'}</strong>
+            </span>
+          </div>
+
+          <div className="top-right">
+            <span className={`connection ${status}`}>
+              <i />{t[status] || status}
+            </span>
+
+            {/* Language Selector */}
+            <label className="language-select">
+              <Globe size={16} />
+              <select 
+                aria-label="Language / भाषा / ਭਾਸ਼ਾ" 
+                value={lang} 
+                onChange={e => setLang(e.target.value)}
+              >
+                {Object.entries(languages).map(([code, label]) => (
+                  <option key={code} value={code}>{label}</option>
+                ))}
+              </select>
+            </label>
+
+            <NavLink to="/settings" className="aw-avatar small" title="Settings">
+              {farm.farmer_name ? farm.farmer_name.slice(0, 2).toUpperCase() : 'AW'}
+            </NavLink>
+          </div>
+        </header>
+
+        {/* Content Body */}
+        <main id="main" className="aw-content">
+          {health?.storage_mode === 'ephemeral' && (
+            <div className="warning-box">
+              <Info size={16} />
+              {t.storageNotice}
+            </div>
+          )}
+
+          <ErrorBox error={error} />
+
+          {status === 'disconnected' && (
+            <div className="reconnect">
+              <Button secondary onClick={() => setVersion(v => v + 1)}>{t.retry}</Button>
+              {authError && (
+                <Button secondary onClick={() => { resetSession(); setVersion(v => v + 1); }}>
+                  {t.newSession}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {!ready && status === 'checking' ? (
+            <div className="aw-loading">
+              <Sprout className="pulse" size={36} color="#2d6a4f" />
+              <span>{t.loading}</span>
+            </div>
+          ) : (
+            <Routes>
+              {/* Core 13 Navigation Routes */}
+              <Route path="/" element={<Dashboard {...shared} />} />
+              <Route path="/farm" element={<MyFarm {...shared} />} />
+              <Route path="/advisor" element={<CropAdvisor {...shared} />} />
+              <Route path="/market" element={<MarketIntelligence {...shared} />} />
+              <Route path="/regional" element={<RegionalInsights {...shared} />} />
+              <Route path="/planning" element={<CropPlanning {...shared} />} />
+              <Route path="/harvest" element={<HarvestPlanner {...shared} />} />
+              <Route path="/weather" element={<WeatherAlerts {...shared} />} />
+              <Route path="/ask" element={<AskAcreWise {...shared} />} />
+              <Route path="/reports" element={<MyReports {...shared} />} />
+              <Route path="/subscription" element={<Subscription {...shared} />} />
+              <Route path="/feedback" element={<Feedback {...shared} />} />
+              <Route path="/settings" element={<SettingsProfile {...shared} setLang={setLang} />} />
+
+              {/* Organization & Admin Portals */}
+              <Route path="/fpo" element={<FPODashboard {...shared} />} />
+              <Route path="/admin" element={<AdminDashboard {...shared} />} />
+
+              {/* Backward Compatibility Aliases */}
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
+              <Route path="/optimizer" element={<Navigate to="/planning" replace />} />
+              <Route path="/simulator" element={<Navigate to="/planning" replace />} />
+              <Route path="/plans" element={<Navigate to="/planning" replace />} />
+              <Route path="/crops" element={<Navigate to="/planning" replace />} />
+              <Route path="/assistant" element={<Navigate to="/ask" replace />} />
+              <Route path="/recommendations" element={<Navigate to="/advisor" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          )}
+        </main>
+
+        {/* Global Footer */}
+        <footer className="aw-footer">
+          <span>
+            <Sprout size={15} color="#2d6a4f" />
+            {t.foot}
+          </span>
+          <span>
+            <i />
+            AcreWise 2.0 · The Right Crop for Every Acre.
+          </span>
+        </footer>
+      </div>
+
+      {notice && (
+        <div className="aw-toast" role="status">
+          <Check size={18} />
+          {notice}
+        </div>
+      )}
+    </div>
+  );
 }
-
-function Overview({t,lang,request,result,go}){return <><Title eyebrow={t.overviewLabel} title={t.welcome} subtitle={t.subtitle} action={<Button onClick={()=>go('/optimizer')}>{t.createPlan}<ArrowUpRight size={17}/></Button>}/><section className="aw-hero"><div className="hero-copy"><div className="hero-kicker"><span/>{t.heroBadge}</div><h2>{t.heroTitle}</h2><p>{t.heroBody}</p><button onClick={()=>go('/optimizer')}>{t.explore}<ArrowRight size={18}/></button></div><div className="hero-art"><Landscape/><div className="field-badge"><div><Leaf size={18}/><strong>{request.farm.name}</strong></div><span>{number(request.farm.acres)} {t.acres} <i/> {t[request.farm.season]} 2026–27</span></div><span className="hero-coordinate">31.63° N &nbsp; 74.87° E · PUNJAB</span></div></section><Metrics result={result} farm={request.farm} t={t}/><div className="overview-grid"><Mix result={result} t={t} lang={lang} action={<button className="aw-text-button" onClick={()=>go('/optimizer')}>{t.viewPlan}<ArrowUpRight size={15}/></button>}/><Resources result={result} farm={request.farm} t={t}/></div><div className="bottom-grid"><section className="scenario-teaser"><div><span className="mini-kicker"><ChartNoAxesCombined size={16}/>{t.simulator}</span><h2>{t.next}</h2><p>{t.nextBody}</p><button onClick={()=>go('/simulator')}>{t.runScenario}<ArrowRight size={16}/></button></div><div className="scenario-illustration" aria-hidden="true"><span>+12%</span><svg viewBox="0 0 200 130"><path d="M0 110L40 90L78 95L116 60L158 67L195 20" fill="none" stroke="#275f43" strokeWidth="3"/><path d="M0 110L40 90L78 95L116 60L158 67L195 20V130H0" fill="#275f4310"/><path d="M0 110L50 99L96 109L147 90L195 103" fill="none" stroke="#b9ac89" strokeDasharray="5 5" strokeWidth="2"/></svg><small>ILLUSTRATION</small></div></section><section className="saathi-teaser"><div><span className="mini-kicker"><Sparkles size={15}/>ACREWISE SAATHI</span><h2>{t.saathiTitle}</h2><p>{t.saathiBody}</p><button onClick={()=>go('/assistant')}>{t.talk}<ArrowRight size={16}/></button></div><div className="saathi-mini-orb"><AudioLines size={34}/></div></section></div><Assumptions t={t}/></>}
-
-function Optimizer({t,lang,request,result,calculate,toast,ready}){
- const [draft,setDraft]=useState(request),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(''),[planName,setPlanName]=useState('');
- const dirty=JSON.stringify(draft)!==JSON.stringify(request);const visible=dirty?null:result;
- async function run(e){e.preventDefault();setBusy(true);setError('');try{await calculate(draft);}catch(e){setError(e.message);}finally{setBusy(false);}}
- async function save(e){e.preventDefault();setSaving(true);setError('');try{await post('/api/plans',{name:planName.trim()||`${draft.farm.name} · ${t[draft.farm.season]}`,optimization:request});toast(t.saved);}catch(e){setError(e.message);}finally{setSaving(false);}}
- return <><Title eyebrow={t.optimizer} title={t.optTitle} subtitle={t.optSub}/><div className="planner-layout"><form className="aw-card planner-controls" onSubmit={run}><div className="card-heading"><h2>{t.farmInputs}</h2><SlidersHorizontal size={19}/></div><FarmFields farm={draft.farm} setFarm={f=>setDraft({...draft,farm:f})} t={t} disabled={busy}/><Field label={t.objective}><select disabled={busy} value={draft.objective} onChange={e=>setDraft({...draft,objective:e.target.value})}><option value="balanced">{t.balanced}</option><option value="profit">{t.profitObjective}</option><option value="water">{t.waterObjective}</option></select></Field><label className="range-field"><span>{t.maxShare}<b>{Math.round(draft.max_share*100)}%</b></span><input disabled={busy} aria-label={t.maxShare} type="range" min="20" max="100" step="5" value={draft.max_share*100} onChange={e=>setDraft({...draft,max_share:Number(e.target.value)/100})}/><small>20%<span>100%</span></small></label><Button className="full" disabled={busy||!ready}>{busy?t.optimizing:t.optimize}<Sparkles size={17}/></Button></form><div className="planner-results"><ErrorBox error={error}/><Mix result={visible} t={t} lang={lang}/>{visible&&<><div className="result-summary"><div><span>{t.profit}</span><strong>{money(visible.totals.profit)}</strong><small>{t.profitNote}</small></div><span className="feasible-badge"><Check size={14}/>{t.feasible}</span></div><section className="aw-card"><div className="card-heading"><h2>{t.why}</h2><Leaf size={18}/></div><p className="explain-line">{t.rules}</p><AllocationTable result={visible} t={t} lang={lang}/><form className="save-plan-form" onSubmit={save}><input aria-label={t.planName} placeholder={t.planName} maxLength={120} value={planName} onChange={e=>setPlanName(e.target.value)}/><Button disabled={saving}><Save size={16}/>{t.save}</Button></form></section><Resources result={visible} farm={request.farm} t={t}/></>}<Assumptions t={t}/></div></div></>
-}
-
-const zeroScenario={price_pct:0,yield_pct:0,cost_pct:0,water_pct:0};
-function Simulator({t,lang,request,ready}){
- const [scenario,setScenario]=useState(zeroScenario),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[history,setHistory]=useState([]);
- useEffect(()=>{if(ready)apiRequest('/api/simulations').then(setHistory).catch(e=>setError(e.message));},[ready]);
- async function run(e){e.preventDefault();setBusy(true);setError('');try{const res=await post('/api/simulate',{optimization:request,scenario});setResult(res);setHistory(h=>[{id:res.id,created_at:new Date().toISOString(),request:{optimization:request,scenario},result:res},...h].slice(0,50));}catch(e){setResult(null);setError(e.message);}finally{setBusy(false);}}
- const chart=result?[{name:t.baseline,value:result.baseline.totals.profit,color:'#b9c9a8'},{name:t.fixed,value:result.fixed_plan.totals.profit,color:'#d7b86d'},...(result.optimized_plan?[{name:t.revised,value:result.optimized_plan.totals.profit,color:'#286345'}]:[])]:[];
- return <><Title eyebrow={t.simulator} title={t.simTitle} subtitle={t.simSub}/><div className="planner-layout"><div><form className="aw-card simulator-controls" onSubmit={run}><div className="card-heading"><h2>{t.changes}</h2><ChartNoAxesCombined size={19}/></div>{[['price_pct','price'],['yield_pct','yield'],['cost_pct','cost'],['water_pct','waterChange']].map(([key,label])=><label className="range-field scenario-range" key={key}><span>{t[label]}<b className={scenario[key]<0?'negative':''}>{scenario[key]>0?'+':''}{scenario[key]}%</b></span><input aria-label={t[label]} disabled={busy} type="range" min="-90" max="100" step="5" value={scenario[key]} onChange={e=>{setScenario({...scenario,[key]:Number(e.target.value)});setResult(null);}}/><small>−90%<span>+100%</span></small></label>)}<Button className="full" disabled={busy||!ready}>{busy?t.optimizing:t.run}<ArrowRight size={16}/></Button><button type="button" className="aw-text-button reset-button" disabled={busy} onClick={()=>{setScenario(zeroScenario);setResult(null);}}><RotateCcw size={14}/>{t.reset}</button></form><div className="sim-note"><Info size={16}/><p>{t.fixedNote}</p></div></div><div className="planner-results"><ErrorBox error={error}/>{result?<><div className="sim-stats">{[[t.baseline,result.baseline.totals.profit],[t.fixed,result.fixed_plan.totals.profit],[t.revised,result.optimized_plan?.totals.profit]].map(([label,value])=><div className="aw-card" key={label}><span>{label}</span><strong>{value==null?'—':money(value)}</strong></div>)}</div>{!result.fixed_plan.feasible&&<div className="warning-box"><Info size={18}/>{t.conditional} ({result.fixed_plan.violations.map(k=>t[k]).join(', ')})</div>}<section className="aw-card"><div className="card-heading"><div><h2>{t.change}</h2><p>{money(result.profit_change)}</p></div><span className="demo-pill">{t.demo}</span></div><ResponsiveContainer width="100%" height={270}><BarChart data={chart} margin={{left:8,right:8,bottom:12}}><CartesianGrid strokeDasharray="3 5" vertical={false} stroke="#e7e9e1"/><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize:11}}/><YAxis tickFormatter={v=>`${v/1000}k`} axisLine={false} tickLine={false} tick={{fontSize:11}}/><Tooltip formatter={v=>money(v)}/><Bar dataKey="value" name={t.profit} radius={[6,6,0,0]} maxBarSize={80}>{chart.map(r=><Cell key={r.name} fill={r.color}/>)}</Bar></BarChart></ResponsiveContainer></section>{result.optimized_plan?<Mix result={result.optimized_plan} t={{...t,mix:t.revised}} lang={lang}/>:<div className="warning-box"><Info size={18}/>{t.infeasible}<p>{result.infeasibility_reason}</p></div>}</>:<div className="aw-card simulator-empty"><ChartNoAxesCombined size={50}/><h2>{t.next}</h2><p>{t.simSub}</p><span>−20% <ArrowRight size={24}/> ?</span></div>}<section className="aw-card"><div className="card-heading"><h2>{t.history}</h2><span className="count-badge">{history.length}</span></div>{history.length?history.slice(0,5).map(h=><button className="history-row" key={h.id} onClick={()=>{setScenario(h.request.scenario);setResult(h.result);}}><div><strong>{new Date(h.created_at.endsWith('Z')?h.created_at:`${h.created_at}Z`).toLocaleDateString()}</strong><span>{t.price}: {h.request.scenario.price_pct}% · {t.water}: {h.request.scenario.water_pct}%</span></div><b>{money(h.result.profit_change)}</b><ChevronRight size={16}/></button>):<p className="muted-copy">{t.noHistory}</p>}</section><Assumptions t={t}/></div></div></>
-}
-
-function FarmPage({t,farm,setFarm,calculate,request,toast,ready}){const [draft,setDraft]=useState(farm),[busy,setBusy]=useState(false),[error,setError]=useState('');async function save(e){e.preventDefault();setBusy(true);setError('');try{const f=await apiRequest('/api/farm',{method:'PUT',body:JSON.stringify(draft)});setFarm(f);toast(t.farmSaved);try{await calculate({...request,farm:f});}catch(e){setError(e.message);}}catch(e){setError(e.message);}finally{setBusy(false);}}return <><Title eyebrow={t.farm} title={t.farmTitle} subtitle={t.farmSub}/><div className="farm-layout"><form className="aw-card" onSubmit={save}><div className="card-heading"><h2>{t.farmInputs}</h2><Tractor size={21}/></div><ErrorBox error={error}/><FarmFields farm={draft} setFarm={setDraft} t={t} profile disabled={busy}/><Button disabled={busy||!ready}><Save size={16}/>{t.saveFarm}</Button></form><aside className="farm-preview"><Landscape/><div><span className="overline">ACREWISE</span><h2>{draft.name}</h2><p><MapPin size={16}/>{draft.district}, {draft.state}</p><strong>{number(draft.acres||0)} <small>{t.acres}</small></strong><div className="farm-tags"><span>{t[draft.soil]}</span><span>{t[draft.season]}</span></div></div></aside></div><div className="session-note"><Info size={16}/>{t.sessionNote}</div></>}
-
-function Plans({t,lang,ready,go,setRequest,setResult,toast}){const [plans,setPlans]=useState([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[deleting,setDeleting]=useState(null),[confirmId,setConfirmId]=useState(null);useEffect(()=>{if(!ready){setLoading(false);return;}apiRequest('/api/plans').then(setPlans).catch(e=>setError(e.message)).finally(()=>setLoading(false));},[ready]);async function remove(id){setDeleting(id);try{await apiRequest(`/api/plans/${id}`,{method:'DELETE'});setPlans(p=>p.filter(x=>x.id!==id));setConfirmId(null);}catch(e){setError(e.message);}finally{setDeleting(null);}}return <><Title eyebrow={t.plans} title={t.plansTitle} subtitle={t.plansSub} action={<Button onClick={()=>go('/optimizer')}>{t.createPlan}<ArrowRight size={16}/></Button>}/><ErrorBox error={error}/>{loading?<p>{t.loading}</p>:plans.length?<div className="saved-grid">{plans.map(p=><section className="aw-card saved-plan-card" key={p.id}><div className="saved-plan-head"><div className="saved-plan-icon"><Sprout size={25}/></div><span className="demo-pill">{t[p.optimization.farm.season]}</span></div><h2>{p.name}</h2><p>{number(p.result.acres)} {t.acres} · {p.optimization.farm.district}</p><div className="allocation-strip">{p.result.allocations.map(r=><span key={r.crop} style={{width:`${r.share}%`,background:r.color}} title={`${cropName(r.crop,lang)} ${number(r.acres)}`}/>)}</div><div className="saved-crops">{p.result.allocations.map(r=><span key={r.crop}><i style={{background:r.color}}/>{cropName(r.crop,lang)}</span>)}</div><div className="saved-profit"><span>{t.profit}</span><strong>{money(p.result.totals.profit)}</strong></div><div className="saved-actions"><Button secondary onClick={()=>{setRequest(p.optimization);setResult(p.result);go('/optimizer');}}>{t.load}<ArrowUpRight size={15}/></Button><button className="delete-button" aria-label={t.delete} onClick={()=>setConfirmId(p.id)}><Trash2 size={17}/></button></div>{confirmId===p.id&&<div className="delete-confirm"><span>{t.confirmDelete}</span><button disabled={deleting===p.id} onClick={()=>remove(p.id)}>{t.delete}</button><button aria-label="Cancel" onClick={()=>setConfirmId(null)}><X size={16}/></button></div>}</section>)}</div>:<div className="aw-card aw-empty large"><Bookmark size={38}/><h2>{t.noPlans}</h2><p>{t.noPlansBody}</p><Button onClick={()=>go('/optimizer')}>{t.createPlan}<ArrowRight size={16}/></Button></div>}</>}
-
-function Crops({t,lang}){const [crops,setCrops]=useState([]),[error,setError]=useState(''),[filter,setFilter]=useState('all');useEffect(()=>{apiRequest('/api/crops').then(r=>setCrops(r.items)).catch(e=>setError(e.message));},[]);return <><Title eyebrow={t.crops} title={t.libraryTitle} subtitle={t.librarySub} action={<span className="demo-pill">{t.demo}</span>}/><ErrorBox error={error}/><div className="crop-tabs">{['all','rabi','kharif','zaid'].map(k=><button className={filter===k?'selected':''} key={k} onClick={()=>setFilter(k)}>{k==='all'?t.crops:t[k]}</button>)}</div><div className="crop-library">{crops.filter(c=>filter==='all'||c.seasons.includes(filter)).map(c=><article className="aw-card library-card" key={c.name}><div className="crop-art" style={{'--crop-color':c.color}}><Wheat size={54} strokeWidth={1.1}/><span>{c.seasons.map(s=>t[s]).join(' / ')}</span></div><div className="library-content"><h2>{cropName(c.name,lang)}</h2><p>{c.soils.map(s=>t[s]).join(' · ')}</p><dl><div><dt>{t.yield}</dt><dd>{c.yield} q / acre</dd></div><div><dt>{t.price}</dt><dd>{money(c.price)} / q</dd></div><div><dt>{t.cost}</dt><dd>{money(c.cost)} / acre</dd></div><div><dt>{t.water}</dt><dd>{number(c.water)} m³ / acre</dd></div></dl><div className="library-profit"><span>{t.estProfit}</span><strong>{money(c.yield*c.price-c.cost)}</strong></div></div></article>)}</div><Assumptions t={t}/></>}

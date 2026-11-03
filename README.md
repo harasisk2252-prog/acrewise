@@ -57,6 +57,12 @@ Set `GEMINI_API_KEY` and `GEMINI_MODEL` in **backend/.env** to enable the Gemini
 
 Speech input uses browser SpeechRecognition with `en-IN`, `hi-IN`, or `pa-IN`; output uses SpeechSynthesis with a matching installed voice. Browser support, recognition language support, network and OS voice installation vary. Unsupported recognition, microphone errors and missing voices are shown in the UI. No prerecorded audio or simulated recognition is used. Real microphone/provider round trips require testing on your device and a configured provider.
 
+## Consent-first SMS and weather
+
+Settings persists alert language, categories and explicit SMS consent to the backend and shows an audit history. Only enabled, useful categories are eligible: severe weather, crop-plan changes, market opportunities, oversupply, and harvest reminders. Configure `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM_NUMBER` only in the backend host's secret environment. When credentials are absent, AcreWise records `not_sent_provider_unconfigured`; it never claims an SMS was delivered. This demo stores only a masked number—use encrypted phone storage and a consent-retention policy in production.
+
+Weather first attempts the Open-Meteo forecast API without exposing a browser key. If unreachable, the dashboard explicitly labels its illustrative offline fallback. Confirm severe-weather decisions through official local advisories.
+
 ## REST endpoints
 
 | Endpoint | Purpose |
@@ -64,6 +70,7 @@ Speech input uses browser SpeechRecognition with `en-IN`, `hi-IN`, or `pa-IN`; o
 | `GET /health` | Health, sample data mode, assistant capability |
 | `POST /api/workspaces` | Create an anonymous workspace; returns a bearer token once |
 | `GET, PUT /api/farm` | Read/save this workspace's farm profile |
+| `GET, PUT /api/farm/details` | Persist extended parcels, crop history and expense ledger |
 | `GET /api/crops` | Sample crop catalog and assumptions |
 | `POST /api/optimize` | Constrained SciPy optimization |
 | `POST /api/simulate` | Scenario calculation and database history |
@@ -71,6 +78,10 @@ Speech input uses browser SpeechRecognition with `en-IN`, `hi-IN`, or `pa-IN`; o
 | `GET, POST /api/plans` | List/save calculated plans |
 | `DELETE /api/plans/{id}` | Delete an owned plan |
 | `POST /api/assistant` | Contextual multilingual AI/local guide |
+| `GET, PUT /api/notifications/preferences` | Consent, languages and useful-alert categories |
+| `POST /api/notifications/sms` | Consent-gated Twilio alert attempt / honest demo record |
+| `GET /api/notifications/history` | Alert audit history for this workspace |
+| `GET /api/weather` | Live Open-Meteo forecast with identified fallback |
 | `POST /api/recommendations` | Original frontend compatibility |
 
 Farm, plan, simulation and assistant endpoints require `Authorization: Bearer <workspace token>`. Only the token hash is stored in SQLite. Tokens are stored in browser localStorage; clearing it loses access to that anonymous workspace. This is a hackathon workspace session, not production identity/account recovery. Original frontend plans and intentions remain browser-local; they are not silently merged with new database plans. Original profiles are migrated on first workspace creation when found on the same origin.

@@ -5,8 +5,8 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Workspace, SavedPlan, Simulation
-from app.schemas import FarmProfile, OptimizeRequest, SimulateRequest, PlanCreate
+from app.models import Workspace, SavedPlan, Simulation, DigitalFarmProfile
+from app.schemas import FarmProfile, OptimizeRequest, SimulateRequest, PlanCreate, DigitalFarmDetails
 from app.security import current_workspace
 from app.services.catalog import CROPS, ASSUMPTIONS, DATA_VERSION
 from app.services.optimizer import optimize, simulate
@@ -29,6 +29,20 @@ def put_farm(payload: FarmProfile, workspace=Depends(current_workspace), db: Ses
     workspace.farm_json = payload.model_dump_json()
     db.commit()
     return payload
+
+@router.get('/farm/details')
+def get_farm_details(workspace=Depends(current_workspace), db: Session = Depends(get_db)):
+    profile = db.get(DigitalFarmProfile, workspace.id)
+    return {'details': json.loads(profile.details_json) if profile else {}}
+
+@router.put('/farm/details')
+def put_farm_details(payload: DigitalFarmDetails, workspace=Depends(current_workspace), db: Session = Depends(get_db)):
+    profile = db.get(DigitalFarmProfile, workspace.id)
+    if not profile:
+        profile = DigitalFarmProfile(workspace_id=workspace.id); db.add(profile)
+    profile.details_json = json.dumps(payload.details)
+    db.commit(); db.refresh(profile)
+    return {'details': json.loads(profile.details_json), 'updated_at': profile.updated_at.isoformat()}
 
 @router.get('/crops')
 def crops():

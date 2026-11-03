@@ -1,5 +1,5 @@
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
@@ -44,3 +44,32 @@ class ChatRequest(StrictModel):
     language: Literal['en', 'hi', 'pa'] = 'en'
     optimization: OptimizeRequest
     history: list[ChatMessage] = Field(default_factory=list, max_length=12)
+
+class SowingIntentionCreate(StrictModel):
+    crop: str = Field(min_length=2, max_length=80)
+    acres: float = Field(gt=0, le=5000)
+    district: str = Field(default='Amritsar', min_length=2, max_length=80)
+    block: str = Field(default='', max_length=80)
+    season: str = Field(default='rabi', max_length=40)
+
+class SMSRequest(StrictModel):
+    phone: str = Field(min_length=10, max_length=15)
+    category: str = Field(default='weather', max_length=40)
+    language: Literal['en', 'hi', 'pa'] = 'pa'
+    message: str | None = Field(default=None, max_length=500)
+
+class NotificationPreferences(StrictModel):
+    phone: str = Field(default='', max_length=15)
+    language: Literal['en', 'hi', 'pa'] = 'pa'
+    consent: bool = False
+    categories: dict[str, bool] = Field(default_factory=lambda: {
+        'weather': True, 'oversupply': True, 'market': True, 'harvest': True, 'crop_plan': True
+    })
+
+class FeedbackCreate(StrictModel):
+    rating: int = Field(ge=1, le=5)
+    category: str = Field(default='recommendation', max_length=60)
+    comments: str = Field(min_length=3, max_length=2000)
+
+class DigitalFarmDetails(StrictModel):
+    details: dict = Field(default_factory=dict)
