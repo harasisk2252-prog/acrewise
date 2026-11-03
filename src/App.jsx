@@ -4,7 +4,7 @@ import {
   Sprout, LayoutDashboard, Tractor, Sparkles, TrendingUp, 
   MapPin, SlidersHorizontal, Calendar, CloudSun, AudioLines, 
   FileText, CreditCard, MessageSquare, Settings, Users, 
-  ShieldCheck, Globe, Menu, X, ArrowUpRight, Check, Info 
+  ShieldCheck, Globe, Menu, X, ArrowUpRight, Check, Info, Landmark
 } from 'lucide-react';
 
 import { apiRequest, post, ensureSession, readLocal, writeLocal, resetSession } from './services/api';
@@ -27,10 +27,12 @@ import Feedback from './pages/Feedback';
 import SettingsProfile from './pages/SettingsProfile';
 import FPODashboard from './pages/FPODashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import KisanPlan from './pages/KisanPlan';
 
 import './premium.css';
 import './modern-theme.css';
 import './futuristic-theme.css';
+import './assistant-first.css';
 
 export const defaultFarm = {
   name: 'My Farm',
@@ -171,6 +173,7 @@ export default function App() {
         { path: '/market', key: 'market', label: t.market, icon: TrendingUp },
         { path: '/regional', key: 'regional', label: t.regional, icon: MapPin, badge: 'Live' },
         { path: '/planning', key: 'planning', label: t.planning, icon: SlidersHorizontal },
+        { path: '/kisan-plan', key: 'kisanPlan', label: 'Kisan Plan', icon: Landmark, badge: 'New' },
         { path: '/harvest', key: 'harvest', label: t.harvest, icon: Calendar },
         { path: '/weather', key: 'weather', label: t.weather, icon: CloudSun },
       ]
@@ -331,6 +334,7 @@ export default function App() {
               <Route path="/market" element={<MarketIntelligence {...shared} />} />
               <Route path="/regional" element={<RegionalInsights {...shared} />} />
               <Route path="/planning" element={<CropPlanning {...shared} />} />
+              <Route path="/kisan-plan" element={<KisanPlan {...shared} />} />
               <Route path="/harvest" element={<HarvestPlanner {...shared} />} />
               <Route path="/weather" element={<WeatherAlerts {...shared} />} />
               <Route path="/ask" element={<AskAcreWise {...shared} />} />

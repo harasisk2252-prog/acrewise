@@ -40,17 +40,17 @@ export default function Dashboard({ t, lang, farm, result, go, calculate }) {
           <h2>{t.heroTitle}</h2>
           <p>{t.heroBody}</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={() => go('/advisor')}>
+            <button className="btn-primary" onClick={() => go('/ask')}>
               <Sparkles size={16} />
-              {t.explore}
+              Talk to AcreWise Saathi
             </button>
             <button 
               className="btn-outline" 
               style={{ background: 'rgba(255,255,255,0.15)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.3)' }}
-              onClick={() => go('/regional')}
+              onClick={() => go('/farm')}
             >
-              <TrendingUp size={16} />
-              {t.regional}
+              <Tractor size={16} />
+              Tell us about my farm
             </button>
           </div>
         </div>

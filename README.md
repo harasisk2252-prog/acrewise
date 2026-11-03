@@ -2,6 +2,33 @@
 
 React + Vite frontend, FastAPI + SQLAlchemy + SQLite backend, and SciPy HiGHS optimization. All agricultural assumptions are clearly labeled sample data. Original English frontend features remain available at `/classic.html`; the main application supports English, Hindi and Punjabi.
 
+> **The right crop is not a guess.** AcreWise turns a farmer's land, water, soil and budget constraints into a clear crop plan—then explains the trade-offs in the farmer's own language.
+
+## What we built, and why
+
+AcreWise is designed around a simple observation: farmers should not need to learn a complex dashboard before getting useful guidance. A confident farmer can explore detailed regional and financial views; a first-time smartphone user can start with **AcreWise Saathi**, speak in Punjabi, Hindi or English, and move through a guided decision path.
+
+| Product decision | What it does | Why it matters |
+| --- | --- | --- |
+| **Assistant-first entry** | Saathi provides mic/text input, suggested questions, and direct next-step links to farm setup, weather, market, and planning. | Reduces menu hunting and makes the platform approachable for farmers with different digital confidence. |
+| **Constraint-based crop mix** | SciPy HiGHS allocates land while enforcing land, soil, season, water, budget and crop-share constraints. | Recommendations are explainable calculations, not an ungrounded chat response. |
+| **Regional intelligence** | Anonymous sowing intentions are aggregated with a minimum-group privacy rule; concentration and oversupply signals are surfaced without exposing individual plans. | Helps farmers consider supply pressure before planting. |
+| **Kisan Plan** | Generates low-risk, balanced and higher-return strategies with crop-wise area, costs, revenue estimates and a print-to-PDF report. | Turns a recommendation into a transparent working-capital discussion document for a farmer, FPO or advisor. |
+| **Weather and alerts** | Weather is fetched from a public provider when available; otherwise the UI says it is an offline illustrative fallback. SMS preferences require consent and record an audit trail. | Honest data status and useful, non-promotional alerts are more valuable than pretending every number is live. |
+
+## Farmer journey
+
+1. **Talk to Saathi** — say or type: “I have 5 acres, less water, and need a crop plan.”
+2. **Build a digital farm profile** — land, soil, season, water, budget, parcels, crop history and expenses.
+3. **Compare recommendations** — suitability, expected yield, cost, profit, water, duration, market signal and weather risk.
+4. **Choose a crop mix** — optimize for balance, return or water conservation; test adverse scenarios before planting.
+5. **Create a Kisan Plan** — select low-risk, balanced or higher-return strategy; print/save the financial estimate as PDF from the browser.
+6. **Stay informed** — enable only the SMS categories the farmer accepts: severe weather, crop-plan changes, market opportunities, harvest reminders, or supply concentration.
+
+## Why AcreWise is different from a general chatbot
+
+General AI can discuss agriculture, but it does not inherently know a farmer's acreage, soil, irrigation limit, available budget, selected season, saved plan, or local crop concentration. AcreWise combines conversational access with farm-scoped calculations and transparent assumptions. The assistant can point a farmer to the right action, while the optimizer and simulator provide the underlying numbers. It never presents illustrative data as live, guarantees profit, or claims to have sent an SMS when a provider is not configured.
+
 ## Run on Windows (two PowerShell terminals)
 
 Backend:

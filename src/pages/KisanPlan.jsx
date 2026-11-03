@@ -1,0 +1,22 @@
+import React, { useState } from 'react';
+import { FileDown, Printer, ShieldCheck, TrendingUp, Scale, Sprout } from 'lucide-react';
+import { money, number } from '../components/Shared';
+
+const strategies = [
+  { id: 'water', title: 'Low Risk Plan', detail: 'Prioritises lower irrigation requirement and diversified crops.', icon: ShieldCheck },
+  { id: 'balanced', title: 'Balanced Plan', detail: 'Balances estimated return, water use and concentration risk.', icon: Scale },
+  { id: 'profit', title: 'Higher Return Plan', detail: 'Prioritises estimated net profit within your stated limits.', icon: TrendingUp },
+];
+
+export default function KisanPlan({ farm, calculate, result, go, toast }) {
+  const [selected, setSelected] = useState('balanced');
+  const [working, setWorking] = useState(false);
+  const active = strategies.find(s => s.id === selected);
+  async function generate(id) { setSelected(id); setWorking(true); try { await calculate({ farm, objective: id, max_share: id === 'profit' ? .9 : .7 }); } catch (error) { toast(error.message); } finally { setWorking(false); } }
+  const totals = result?.totals, revenue = totals ? totals.cost + totals.profit : 0;
+  return <div className="page-container kisan-plan">
+    <div className="aw-title"><div><span className="overline">ACREWISE KISAN PLAN</span><h1>Your farm. Your financial plan.</h1><p>Create a transparent crop and working-capital estimate. It is a planning document, not a loan approval or profit guarantee.</p></div><button className="btn-outline" onClick={() => go('/farm')}><Sprout size={16}/> Update farm details</button></div>
+    <section className="premium-card" style={{ marginBottom: 24 }}><div className="card-heading"><div><h2>Choose a strategy</h2><p>Every option uses your land, budget, soil, season and water limits.</p></div></div><div className="strategy-grid">{strategies.map(item => { const Icon = item.icon; return <button key={item.id} type="button" className={`strategy-card ${selected === item.id ? 'active' : ''}`} onClick={() => generate(item.id)}><Icon size={22}/><strong>{item.title}</strong><span>{item.detail}</span>{selected === item.id && <small>Selected</small>}</button>; })}</div></section>
+    {!result ? <section className="premium-card aw-empty"><Sprout size={36}/><h2>Generate your first Kisan Plan</h2><p>Select a strategy above. AcreWise will calculate land allocation and financial estimates from your saved farm information.</p></section> : <section className="kisan-print-area"><div className="kisan-report-head"><div><span>ACREWISE KISAN PLAN · PLANNING ESTIMATE</span><h2>{active.title} for {farm.name || 'My Farm'}</h2><p>{farm.district}, {farm.state} · {number(farm.acres)} acres · {farm.season} season</p></div><div className="report-actions"><button className="btn-outline" onClick={() => window.print()}><Printer size={15}/> Print / Save PDF</button><button className="btn-primary" disabled={working} onClick={() => generate(selected)}><FileDown size={15}/>{working ? 'Calculating…' : 'Regenerate'}</button></div></div><div className="kisan-totals"><div><span>Working capital estimate</span><strong>{money(totals.cost)}</strong></div><div><span>Expected revenue estimate</span><strong>{money(revenue)}</strong></div><div><span>Estimated net profit</span><strong>{money(totals.profit)}</strong></div><div><span>Planned irrigation</span><strong>{number(totals.water)} m³</strong></div></div><section className="premium-card"><h2>Crop-wise land and financial estimate</h2><div className="aw-table-wrap"><table className="aw-table"><thead><tr><th>Crop</th><th>Land</th><th>Estimated cost</th><th>Estimated revenue</th><th>Estimated net profit</th><th>Water</th></tr></thead><tbody>{result.allocations.map(row => <tr key={row.crop}><td><strong>{row.crop}</strong></td><td>{number(row.acres)} acres</td><td>{money(row.cost)}</td><td>{money(row.cost + row.profit)}</td><td>{money(row.profit)}</td><td>{number(row.water)} m³</td></tr>)}</tbody></table></div></section><section className="premium-card kisan-disclaimer"><h2>Plan assumptions and responsible use</h2><p>This plan uses AcreWise’s current illustrative crop assumptions and your entered farm constraints. Yield, selling price, weather, input cost and market access can change. Use it to discuss working-capital needs with a bank, FPO or advisor; it is not a bank sanction letter, loan eligibility decision, or guarantee of profit.</p></section></section>}
+  </div>;
+}
